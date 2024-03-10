@@ -16,7 +16,11 @@ return {
   {
     "LazyVim/LazyVim",
     opts = {
+<<<<<<< HEAD
+      colorscheme = "default",
+=======
       colorscheme = "gruvbox",
+>>>>>>> refs/remotes/origin/main
     },
   },
 
