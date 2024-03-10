@@ -1,3 +1,16 @@
 #!/bin/bash
 
-sudo apt install yadm bat python3.10-venv -y
+# Update and upgrade packages
+sudo apt-get update && sudo apt-get upgrade -y
+
+# Install essential packages
+sudo apt-get install -y git curl wget vim yadm bat python3.10-venv
+
+# More package installations
+# sudo apt-get install -y <other-packages>
+
+# Configure git (replace with your details)
+git config --global user.name "zvarnes"
+git config --global user.email "zach.varnes@gmail.com"
+
+echo "Bootstrap process complete."
