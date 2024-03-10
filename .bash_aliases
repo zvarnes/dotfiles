@@ -4,9 +4,8 @@ alias dcpull='sudo docker-compose -f docker-compose.yml pull' #pulls all new ima
 alias dclogs='sudo docker-compose -f docker-compose.yml logs -tf --tail="50" '
 alias dtail='sudo docker logs -tf --tail="50" "$@"'
 alias vim='nvim'
-
 alias ls='lsd'
 alias l='ls'
 alias ll='ls -alF'
 alias la='ls -A'
-alias cat='batcat --paging=never'
+alias cat='batcat -p'

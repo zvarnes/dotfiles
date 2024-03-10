@@ -1,4 +1,3 @@
 #!/bin/bash
 
-sudo apt install yadm bat -y
-
+sudo apt install yadm bat python3.10-venv -y
