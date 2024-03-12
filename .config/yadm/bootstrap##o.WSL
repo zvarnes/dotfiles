@@ -1,4 +1,19 @@
 #!/bin/bash
 
-sudo apt install yadm bat -y
+sudo apt install yadm bat cargo -y
 
+# install lazyvim
+# required
+mv ~/.config/nvim{,.bak}
+# optional but recommended
+mv ~/.local/share/nvim{,.bak}
+mv ~/.local/state/nvim{,.bak}
+mv ~/.cache/nvim{,.bak}
+git clone https://github.com/LazyVim/starter ~/.config/nvim
+rm -rf ~/.config/nvim/.git
+
+# install pyenv
+git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+
+# install lsd for linux
+cargo install lsd
