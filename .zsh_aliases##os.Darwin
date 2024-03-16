@@ -1,0 +1,6 @@
+alias ls='lsd'
+alias cat='bat -pP'
+alias vim='nvim'
+alias n='vim'
+alias ll='ls -la'
+alias la='ls -A'
