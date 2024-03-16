@@ -4,13 +4,16 @@
 sudo apt-get update && sudo apt-get upgrade -y
 
 # Install essential packages
-sudo apt-get install -y git curl wget vim yadm bat python3.10-venv zsh
+sudo apt install git curl wget vim yadm bat python3.10-venv zsh cargo
+
+# install pyenv
+git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+
+# install lsd for linux
+cargo install lsd
 
 # install ohmyzsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
-# More package installations
-# sudo apt-get install -y <other-packages>
 
 # Configure git (replace with your details)
 git config --global user.name "zvarnes"

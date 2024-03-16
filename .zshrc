@@ -1,4 +1,4 @@
-ZSH_THEME='agnoster'
+ZSH_THEME='robbyrussell'
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
@@ -95,7 +95,7 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias ls='lsd'
-alias cat='bat'
+#alias cat='bat'
 alias vim='nvim'
 alias n='vim'
 alias ll='ls -la'
