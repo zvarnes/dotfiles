@@ -99,3 +99,6 @@ source ~/.zsh_aliases
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init -)"
+
+export PATH="$PATH:/home/zvarnes/.cargo/bin"
+export PATH="$PATH:/opt/nvim-linux64/bin"
