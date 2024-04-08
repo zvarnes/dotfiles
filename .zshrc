@@ -100,3 +100,6 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 source ~/.zsh_aliases
+
+export PATH="$PATH:/home/zvarnes/.cargo/bin"
+export PATH="$PATH:/opt/nvim-linux64/bin"
