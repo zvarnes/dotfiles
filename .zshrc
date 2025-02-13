@@ -203,12 +203,6 @@ plugins=(git)
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-alias ls='lsd'
-alias cat='bat'
-alias vim='nvim'
-alias n='vim'
-alias ll='ls -la'
-alias la='ls -A'
 
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
