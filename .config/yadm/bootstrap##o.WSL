@@ -4,10 +4,15 @@
 sudo apt-get update && sudo apt-get upgrade -y
 
 # Install essential packages
-sudo apt install git curl wget vim yadm bat python3.10-venv zsh cargo
+sudo apt install git curl wget vim yadm bat cargo
 
 # install pyenv
 git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+
+# install neovim
+curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
+sudo rm -rf /opt/nvim
+sudo tar -C /opt -xzf nvim-linux-x86_64.tar.gz
 
 # install lsd for linux
 cargo install lsd
