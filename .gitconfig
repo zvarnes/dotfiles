@@ -1,6 +1,8 @@
 [user]
 	name = zvarnes
 	email = zach.varnes@gmail.com
-[credential "https://github.com"]
+[credential]
 	helper = 
-	helper = !/usr/bin/gh auth git-credential
+	helper = /usr/local/share/gcm-core/git-credential-manager
+[credential "https://dev.azure.com"]
+	useHttpPath = true
