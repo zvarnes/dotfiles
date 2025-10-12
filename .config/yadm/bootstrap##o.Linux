@@ -1,22 +1,114 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Update and upgrade packages
-sudo apt-get update && sudo apt-get upgrade -y
+log(){ printf '\n==> %s\n' "$*"; }
 
-# Install essential packages
-sudo apt install git curl wget vim yadm bat python3.10-venv zsh cargo -y
+export DEBIAN_FRONTEND=noninteractive
 
-# install pyenv
-git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+# Add multilib (idempotent)
+if ! dpkg --print-foreign-architectures | grep -qx i386; then
+  log "Enabling i386 multilib"
+  sudo dpkg --add-architecture i386
+fi
 
-# install lsd for linux
-cargo install lsd
+log "Apt update"
+sudo apt-get update
 
-# install ohmyzsh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+# Install apt packages only if missing
+need_pkgs=()
+for p in git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla; do
+  dpkg -s "$p" >/dev/null 2>&1 || need_pkgs+=("$p")
+done
+if (( ${#need_pkgs[@]} )); then
+  log "Installing: ${need_pkgs[*]}"
+  sudo apt-get install -y "${need_pkgs[@]}"
+fi
 
-# Configure git (replace with your details)
-git config --global user.name "zvarnes"
-git config --global user.email "zach.varnes@gmail.com"
+# pyenv
+if [ ! -d "$HOME/.pyenv" ]; then
+  log "Installing pyenv"
+  git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+else
+  log "Updating pyenv"
+  git -C ~/.pyenv pull --ff-only || true
+fi
 
-echo "Bootstrap process complete."
+# oh-my-zsh (non-interactive)
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+  log "Installing oh-my-zsh"
+  CHSH=no RUNZSH=no KEEP_ZSHRC=yes \
+  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+fi
+
+# Git config (only set if empty)
+git config --global user.name  >/dev/null || git config --global user.name  "zvarnes"
+git config --global user.email >/dev/null || git config --global user.email "zach.varnes@gmail.com"
+
+# Chrome repo (keyring method, idempotent)
+if ! command -v google-chrome >/dev/null; then
+  log "Installing Google Chrome"
+  sudo install -d -m 0755 /etc/apt/keyrings
+  if [ ! -f /etc/apt/keyrings/google-linux.gpg ]; then
+    curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/google-linux.gpg
+    sudo chmod 0644 /etc/apt/keyrings/google-linux.gpg
+  fi
+  if [ ! -f /etc/apt/sources.list.d/google-chrome.list ]; then
+    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-linux.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
+      | sudo tee /etc/apt/sources.list.d/google-chrome.list >/dev/null
+  fi
+  sudo apt-get update
+  sudo apt-get install -y google-chrome-stable
+fi
+
+# Discord (.deb) if missing
+if ! command -v discord >/dev/null; then
+  log "Installing Discord"
+  tmpdeb=$(mktemp /tmp/discord.XXXX.deb)
+  wget -qO "$tmpdeb" "https://discord.com/api/download?platform=linux&format=deb"
+  sudo apt-get install -y "$tmpdeb"
+  rm -f "$tmpdeb"
+fi
+
+# Termius (.deb) if missing
+if ! command -v termius-app >/dev/null; then
+  log "Installing Termius"
+  tmpdeb=$(mktemp /tmp/termius.XXXX.deb)
+  wget -qO "$tmpdeb" "https://www.termius.com/download/linux/Termius.deb"
+  sudo apt-get install -y "$tmpdeb" || true
+  rm -f "$tmpdeb"
+fi
+
+# Steam (enable i386 already handled)
+if ! command -v steam >/dev/null; then
+  log "Installing Steam"
+  sudo apt-get install -y steam-installer steam-devices
+fi
+
+# Nerd Fonts: install only if font not present
+have_nf() { fc-list | grep -qi "$1"; }
+install_nf() {
+  local font="$1"
+  if have_nf "$font"; then
+    log "Nerd Font '$font' already installed"
+    return
+  fi
+  log "Installing Nerd Font '$font'"
+  git clone --depth 1 https://github.com/ryanoasis/nerd-fonts.git /tmp/nerd-fonts
+  ( cd /tmp/nerd-fonts && yes | ./install.sh "$font" )
+  rm -rf /tmp/nerd-fonts
+  fc-cache -fv >/dev/null
+}
+
+# Pick your fonts here
+install_nf "Ubuntu"
+
+# Nvidia 32-bit libs hint for Steam (only if Nvidia driver present)
+if lsmod | grep -qi nvidia; then
+  if ! dpkg -s nvidia-driver-libs:i386 >/dev/null 2>&1; then
+    log "Installing Nvidia 32-bit user libs for Steam"
+    sudo apt-get install -y nvidia-driver-libs:i386 || true
+  fi
+fi
+
+log "Bootstrap complete."
+
