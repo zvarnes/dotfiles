@@ -16,7 +16,7 @@ sudo apt-get update
 
 # Install apt packages only if missing
 need_pkgs=()
-for p in git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla; do
+for p in git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla python3.13-venv nfs-common; do
   dpkg -s "$p" >/dev/null 2>&1 || need_pkgs+=("$p")
 done
 if (( ${#need_pkgs[@]} )); then
@@ -69,12 +69,14 @@ if ! command -v discord >/dev/null; then
   rm -f "$tmpdeb"
 fi
 
-# Termius (.deb) if missing
-if ! command -v termius-app >/dev/null; then
+# Termius
+if dpkg -s termius-app >/dev/null 2>&1; then
+  log "Termius already installed"
+else
   log "Installing Termius"
   tmpdeb=$(mktemp /tmp/termius.XXXX.deb)
   wget -qO "$tmpdeb" "https://www.termius.com/download/linux/Termius.deb"
-  sudo apt-get install -y "$tmpdeb" || true
+  sudo apt-get install -y "$tmpdeb"
   rm -f "$tmpdeb"
 fi
 
@@ -84,19 +86,38 @@ if ! command -v steam >/dev/null; then
   sudo apt-get install -y steam-installer steam-devices
 fi
 
-# Nerd Fonts: install only if font not present
-have_nf() { fc-list | grep -qi "$1"; }
+# Nextcloud client
+if ! command -v nextcloud >/dev/null; then
+  log "Installing Nextcloud client"
+  sudo apt install -y nextcloud-desktop
+else
+  log "Nextcloud already installed"
+fi
+
+# --- Nerd Fonts via release assets, no git clone ---
 install_nf() {
   local font="$1"
-  if have_nf "$font"; then
+  local fonts_dir="$HOME/.local/share/fonts/NerdFonts/$font"
+  local marker="$fonts_dir/.installed"
+  local cache="$HOME/.cache/nerd-fonts-zips"
+  local zip="$cache/${font}.zip"
+  local url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/${font}.zip"
+
+  if [ -f "$marker" ]; then
     log "Nerd Font '$font' already installed"
     return
   fi
-  log "Installing Nerd Font '$font'"
-  git clone --depth 1 https://github.com/ryanoasis/nerd-fonts.git /tmp/nerd-fonts
-  ( cd /tmp/nerd-fonts && yes | ./install.sh "$font" )
-  rm -rf /tmp/nerd-fonts
-  fc-cache -fv >/dev/null
+
+  log "Installing Nerd Font '$font' from release zip"
+  mkdir -p "$cache" "$fonts_dir"
+
+  if [ ! -s "$zip" ]; then
+    curl -fL "$url" -o "$zip"
+  fi
+
+  unzip -o -q "$zip" -d "$fonts_dir"
+  fc-cache -f "$fonts_dir" >/dev/null
+  touch "$marker"
 }
 
 # Pick your fonts here
