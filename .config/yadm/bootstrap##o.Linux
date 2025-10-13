@@ -94,6 +94,26 @@ else
   log "Nextcloud already installed"
 fi
 
+# --- Signal ---
+if ! dpkg -s signal-desktop >/dev/null 2>&1; then
+  log "Installing Signal Desktop"
+  wget -O- https://updates.signal.org/desktop/apt/keys.asc | sudo gpg --dearmor -o /usr/share/keyrings/signal-desktop-keyring.gpg
+  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/signal-desktop-keyring.gpg] https://updates.signal.org/desktop/apt xenial main" \
+    | sudo tee /etc/apt/sources.list.d/signal-xenial.list >/dev/null
+  sudo apt update
+  sudo apt install -y signal-desktop
+else
+  log "Signal Desktop already installed"
+fi
+
+# --- Telegram ---
+if ! dpkg -s telegram-desktop >/dev/null 2>&1; then
+  log "Installing Telegram Desktop"
+  sudo apt install -y telegram-desktop
+else
+  log "Telegram Desktop already installed"
+fi
+
 # --- Nerd Fonts via release assets, no git clone ---
 install_nf() {
   local font="$1"
