@@ -1,29 +1,63 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-log(){ printf '\n==> %s\n' "$*"; }
+# =========================
+# Helpers
+# =========================
+log() { printf '\n==> %s\n' "$*"; }
 
 export DEBIAN_FRONTEND=noninteractive
+APT_YFLAGS=(-yq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew")
 
-# Add multilib (idempotent)
+apt_update() { sudo apt-get "${APT_YFLAGS[@]}" update; }
+apt_install() { sudo apt-get "${APT_YFLAGS[@]}" install "$@"; }
+have_pkg() { dpkg -s "$1" >/dev/null 2>&1; }
+have_cmd() { command -v "$1" >/dev/null 2>&1; }
+
+add_keyring() { # add_keyring <url> <dest>
+  local url="$1" dest="$2"
+  if [ ! -f "$dest" ]; then
+    sudo install -d -m 0755 "$(dirname "$dest")"
+    curl -fsSL "$url" | sudo gpg --dearmor -o "$dest"
+    sudo chmod 0644 "$dest"
+  else
+    log "Keyring present: $dest"
+  fi
+}
+
+add_apt_source() { # add_apt_source <content> <listfile>
+  local content="$1" list="$2"
+  if [ ! -f "$list" ]; then
+    echo "$content" | sudo tee "$list" >/dev/null
+  else
+    log "APT source present: $list"
+  fi
+}
+
+# =========================
+# Base system
+# =========================
+# i386 multilib (for Steam/NVIDIA 32-bit)
 if ! dpkg --print-foreign-architectures | grep -qx i386; then
   log "Enabling i386 multilib"
   sudo dpkg --add-architecture i386
 fi
 
 log "Apt update"
-sudo apt-get update
+apt_update
 
-# Install apt packages only if missing
-need_pkgs=()
-for p in git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla python3.13-venv nfs-common; do
-  dpkg -s "$p" >/dev/null 2>&1 || need_pkgs+=("$p")
-done
-if (( ${#need_pkgs[@]} )); then
-  log "Installing: ${need_pkgs[*]}"
-  sudo apt-get install -y "${need_pkgs[@]}"
+# Core packages
+base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla python3.13-venv nfs-common)
+need=()
+for p in "${base_pkgs[@]}"; do have_pkg "$p" || need+=("$p"); done
+if (( ${#need[@]} )); then
+  log "Installing: ${need[*]}"
+  apt_install "${need[@]}"
 fi
 
+# =========================
+# Dev tooling
+# =========================
 # pyenv
 if [ ! -d "$HOME/.pyenv" ]; then
   log "Installing pyenv"
@@ -36,85 +70,144 @@ fi
 # oh-my-zsh (non-interactive)
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
   log "Installing oh-my-zsh"
-  CHSH=no RUNZSH=no KEEP_ZSHRC=yes \
-  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  CHSH=no RUNZSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 fi
 
-# Git config (only set if empty)
-git config --global user.name  >/dev/null || git config --global user.name  "zvarnes"
-git config --global user.email >/dev/null || git config --global user.email "zach.varnes@gmail.com"
+# Git identity (set only if unset)
+git config --global user.name  >/dev/null 2>&1 || git config --global user.name  "zvarnes"
+git config --global user.email >/devnull 2>&1 || git config --global user.email "zach.varnes@gmail.com"
 
-# Chrome repo (keyring method, idempotent)
-if ! command -v google-chrome >/dev/null; then
+# =========================
+# Apps (APT repos)
+# =========================
+# Google Chrome
+if ! have_cmd google-chrome; then
   log "Installing Google Chrome"
-  sudo install -d -m 0755 /etc/apt/keyrings
-  if [ ! -f /etc/apt/keyrings/google-linux.gpg ]; then
-    curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/google-linux.gpg
-    sudo chmod 0644 /etc/apt/keyrings/google-linux.gpg
-  fi
-  if [ ! -f /etc/apt/sources.list.d/google-chrome.list ]; then
-    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-linux.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
-      | sudo tee /etc/apt/sources.list.d/google-chrome.list >/dev/null
-  fi
-  sudo apt-get update
-  sudo apt-get install -y google-chrome-stable
+  add_keyring "https://dl.google.com/linux/linux_signing_key.pub" "/etc/apt/keyrings/google-linux.gpg"
+  add_apt_source "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-linux.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
+                 "/etc/apt/sources.list.d/google-chrome.list"
+  apt_update
+  apt_install google-chrome-stable
 fi
 
-# Discord (.deb) if missing
-if ! command -v discord >/dev/null; then
-  log "Installing Discord"
-  tmpdeb=$(mktemp /tmp/discord.XXXX.deb)
-  wget -qO "$tmpdeb" "https://discord.com/api/download?platform=linux&format=deb"
-  sudo apt-get install -y "$tmpdeb"
-  rm -f "$tmpdeb"
-fi
-
-# Termius
-if dpkg -s termius-app >/dev/null 2>&1; then
-  log "Termius already installed"
-else
-  log "Installing Termius"
-  tmpdeb=$(mktemp /tmp/termius.XXXX.deb)
-  wget -qO "$tmpdeb" "https://www.termius.com/download/linux/Termius.deb"
-  sudo apt-get install -y "$tmpdeb"
-  rm -f "$tmpdeb"
-fi
-
-# Steam (enable i386 already handled)
-if ! command -v steam >/dev/null; then
-  log "Installing Steam"
-  sudo apt-get install -y steam-installer steam-devices
-fi
-
-# Nextcloud client
-if ! command -v nextcloud >/dev/null; then
-  log "Installing Nextcloud client"
-  sudo apt install -y nextcloud-desktop
-else
-  log "Nextcloud already installed"
-fi
-
-# --- Signal ---
-if ! dpkg -s signal-desktop >/dev/null 2>&1; then
+# Signal
+if ! have_pkg signal-desktop; then
   log "Installing Signal Desktop"
-  wget -O- https://updates.signal.org/desktop/apt/keys.asc | sudo gpg --dearmor -o /usr/share/keyrings/signal-desktop-keyring.gpg
-  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/signal-desktop-keyring.gpg] https://updates.signal.org/desktop/apt xenial main" \
-    | sudo tee /etc/apt/sources.list.d/signal-xenial.list >/dev/null
-  sudo apt update
-  sudo apt install -y signal-desktop
+  add_keyring "https://updates.signal.org/desktop/apt/keys.asc" "/usr/share/keyrings/signal-desktop-keyring.gpg"
+  add_apt_source "deb [arch=amd64 signed-by=/usr/share/keyrings/signal-desktop-keyring.gpg] https://updates.signal.org/desktop/apt xenial main" \
+                 "/etc/apt/sources.list.d/signal-xenial.list"
+  apt_update
+  apt_install signal-desktop
 else
   log "Signal Desktop already installed"
 fi
 
-# --- Telegram ---
-if ! dpkg -s telegram-desktop >/dev/null 2>&1; then
-  log "Installing Telegram Desktop"
-  sudo apt install -y telegram-desktop
+# VS Code
+if ! have_pkg code; then
+  log "Installing Visual Studio Code"
+  add_keyring "https://packages.microsoft.com/keys/microsoft.asc" "/usr/share/keyrings/ms_vscode.gpg"
+  add_apt_source "deb [arch=amd64 signed-by=/usr/share/keyrings/ms_vscode.gpg] https://packages.microsoft.com/repos/code stable main" \
+                 "/etc/apt/sources.list.d/vscode.list"
+  apt_update
+  apt_install code
 else
-  log "Telegram Desktop already installed"
+  log "VS Code already installed"
 fi
 
-# --- Nerd Fonts via release assets, no git clone ---
+# 1Password
+if ! have_pkg 1password; then
+  log "Installing 1Password"
+  add_keyring "https://downloads.1password.com/linux/keys/1password.asc" "/usr/share/keyrings/1password-archive-keyring.gpg"
+  add_apt_source "deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main" \
+                 "/etc/apt/sources.list.d/1password.list"
+  apt_update
+  apt_install 1password
+else
+  log "1Password already installed"
+fi
+
+# LibreOffice
+have_pkg libreoffice || { log "Installing LibreOffice"; apt_install libreoffice; }
+
+# Nextcloud client
+if ! have_cmd nextcloud; then
+  log "Installing Nextcloud client"
+  apt_install nextcloud-desktop
+else
+  log "Nextcloud already installed"
+fi
+
+# Termius (.deb direct)
+if ! have_pkg termius-app; then
+  log "Installing Termius"
+  tmpdeb=$(mktemp /tmp/termius.XXXX.deb)
+  wget -qO "$tmpdeb" "https://www.termius.com/download/linux/Termius.deb"
+  apt_install "$tmpdeb"
+  rm -f "$tmpdeb"
+else
+  log "Termius already installed"
+fi
+
+# ProtonVPN
+if ! have_pkg proton-vpn-gtk-app; then
+  log "Installing ProtonVPN"
+  add_keyring "https://repo.protonvpn.com/debian/public_key.asc" "/usr/share/keyrings/protonvpn-archive-keyring.gpg"
+  add_apt_source "deb [signed-by=/usr/share/keyrings/protonvpn-archive-keyring.gpg] https://repo.protonvpn.com/debian stable main" \
+                 "/etc/apt/sources.list.d/protonvpn.list"
+  apt_update
+  apt_install proton-vpn-gtk-app
+else
+  log "ProtonVPN already installed"
+fi
+
+# =========================
+# Apps (Snap)  — auto-updates handled by snapd
+# =========================
+# Ensure snapd (optional; comment out if not desired)
+if ! have_cmd snap; then
+  log "Installing snapd"
+  apt_install snapd
+fi
+
+# Discord
+if ! snap list 2>/dev/null | grep -q '^discord '; then
+  log "Installing Discord (snap)"
+  sudo snap install discord
+else
+  log "Discord already installed (snap)"
+fi
+
+# Telegram
+if ! snap list 2>/dev/null | grep -q '^telegram-desktop '; then
+  log "Installing Telegram (snap)"
+  sudo snap install telegram-desktop
+else
+  log "Telegram already installed (snap)"
+fi
+
+# Todoist
+if ! snap list 2>/dev/null | grep -q '^todoist '; then
+  log "Installing Todoist (snap)"
+  sudo snap install todoist
+else
+  log "Todoist already installed (snap)"
+fi
+
+# =========================
+# Steam and NVIDIA 32-bit libs
+# =========================
+if ! have_cmd steam; then
+  log "Installing Steam"
+  apt_install steam-installer steam-devices
+fi
+
+if lsmod | grep -qi nvidia; then
+  have_pkg nvidia-driver-libs:i386 || { log "Installing NVIDIA 32-bit libs"; apt_install nvidia-driver-libs:i386 || true; }
+fi
+
+# =========================
+# Nerd Fonts (release zips)
+# =========================
 install_nf() {
   local font="$1"
   local fonts_dir="$HOME/.local/share/fonts/NerdFonts/$font"
@@ -128,28 +221,14 @@ install_nf() {
     return
   fi
 
-  log "Installing Nerd Font '$font' from release zip"
+  log "Installing Nerd Font '$font'"
   mkdir -p "$cache" "$fonts_dir"
-
-  if [ ! -s "$zip" ]; then
-    curl -fL "$url" -o "$zip"
-  fi
-
+  [ -s "$zip" ] || curl -fL "$url" -o "$zip"
   unzip -o -q "$zip" -d "$fonts_dir"
-  fc-cache -f "$fonts_dir" >/dev/null
-  touch "$marker"
+  fc-cache -f "$fonts_dir" >/dev/null || true
+  : > "$marker"
 }
 
-# Pick your fonts here
 install_nf "Ubuntu"
 
-# Nvidia 32-bit libs hint for Steam (only if Nvidia driver present)
-if lsmod | grep -qi nvidia; then
-  if ! dpkg -s nvidia-driver-libs:i386 >/dev/null 2>&1; then
-    log "Installing Nvidia 32-bit user libs for Steam"
-    sudo apt-get install -y nvidia-driver-libs:i386 || true
-  fi
-fi
-
 log "Bootstrap complete."
-
