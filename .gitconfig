@@ -7,3 +7,5 @@
 [user]
 	name = zvarnes
 	email = zach.varnes@gmail.com
+[safe]
+	directory = /home/zvarnes/homeassistant
