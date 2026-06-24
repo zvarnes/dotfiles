@@ -192,6 +192,29 @@ else
 fi
 
 # =========================
+# Docker Engine + Compose (official repo)
+# =========================
+if ! have_cmd docker; then
+  log "Installing Docker"
+  add_keyring "https://download.docker.com/linux/ubuntu/gpg" "/etc/apt/keyrings/docker.gpg"
+  add_apt_source "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "${VERSION_CODENAME}") stable" \
+                 "/etc/apt/sources.list.d/docker.list"
+  apt_update
+  apt_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  sudo usermod -aG docker "$USER"
+  log "Added $USER to the docker group (log out/in to take effect)"
+else
+  log "Docker already installed"
+fi
+
+# Standalone docker-compose binary — matches the `docker-compose` shell aliases
+if ! have_cmd docker-compose; then
+  log "Installing docker-compose (standalone)"
+  sudo curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)" -o /usr/local/bin/docker-compose
+  sudo chmod +x /usr/local/bin/docker-compose
+fi
+
+# =========================
 # Apps (Snap)  — auto-updates handled by snapd
 # =========================
 # Ensure snapd (optional; comment out if not desired)
