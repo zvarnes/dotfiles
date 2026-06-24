@@ -90,6 +90,15 @@ install_or_update_nvim() {
 }
 install_or_update_nvim
 
+# LazyVim starter config (only if no nvim config exists yet)
+if [ ! -e "$HOME/.config/nvim" ]; then
+  log "Installing LazyVim starter"
+  git clone https://github.com/LazyVim/starter "$HOME/.config/nvim"
+  rm -rf "$HOME/.config/nvim/.git"
+else
+  log "Neovim config already present, skipping LazyVim starter"
+fi
+
 # oh-my-zsh (non-interactive)
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
   log "Installing oh-my-zsh"
@@ -108,6 +117,23 @@ git config --global user.email >/dev/null 2>&1 || git config --global user.email
 # =========================
 # Apps (APT repos)
 # =========================
+# GitHub CLI (keyring is already binary GPG; download directly rather than dearmor)
+if ! have_cmd gh; then
+  log "Installing GitHub CLI"
+  if [ ! -f /etc/apt/keyrings/githubcli-archive-keyring.gpg ]; then
+    sudo install -d -m 0755 /etc/apt/keyrings
+    curl -fsSL "https://cli.github.com/packages/githubcli-archive-keyring.gpg" \
+      | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
+    sudo chmod 0644 /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  fi
+  add_apt_source "deb [arch=amd64 signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+                 "/etc/apt/sources.list.d/github-cli.list"
+  apt_update
+  apt_install gh
+else
+  log "GitHub CLI already installed"
+fi
+
 # Google Chrome
 if ! have_cmd google-chrome; then
   log "Installing Google Chrome"
