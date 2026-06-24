@@ -14,6 +14,12 @@ apt_install() { sudo apt-get "${APT_YFLAGS[@]}" install "$@"; }
 have_pkg() { dpkg -s "$1" >/dev/null 2>&1; }
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
+# Machine class: desktop (default) vs headless server.
+# Mark a box as a server BEFORE running bootstrap:  yadm config local.class server
+# Unset class is treated as desktop, so existing machines keep full behavior.
+is_desktop() { [ "$(yadm config local.class 2>/dev/null || true)" != "server" ]; }
+log "Machine class: $(yadm config local.class 2>/dev/null || echo 'unset (desktop)')"
+
 add_keyring() { # add_keyring <url> <dest>
   local url="$1" dest="$2"
   if [ ! -f "$dest" ]; then
@@ -38,7 +44,7 @@ add_apt_source() { # add_apt_source <content> <listfile>
 # Base system
 # =========================
 # i386 multilib (for Steam/NVIDIA 32-bit)
-if ! dpkg --print-foreign-architectures | grep -qx i386; then
+if is_desktop && ! dpkg --print-foreign-architectures | grep -qx i386; then
   log "Enabling i386 multilib"
   sudo dpkg --add-architecture i386
 fi
@@ -47,7 +53,7 @@ log "Apt update"
 apt_update
 
 # Core packages
-base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla python3-venv nfs-common fzf zoxide jq ripgrep shellcheck git-delta)
+base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common python3-venv nfs-common fzf zoxide jq ripgrep shellcheck git-delta)
 need=()
 for p in "${base_pkgs[@]}"; do have_pkg "$p" || need+=("$p"); done
 if (( ${#need[@]} )); then
@@ -134,8 +140,14 @@ else
   log "GitHub CLI already installed"
 fi
 
+# FileZilla (GUI)
+if is_desktop && ! have_pkg filezilla; then
+  log "Installing FileZilla"
+  apt_install filezilla
+fi
+
 # Google Chrome
-if ! have_cmd google-chrome; then
+if is_desktop && ! have_cmd google-chrome; then
   log "Installing Google Chrome"
   add_keyring "https://dl.google.com/linux/linux_signing_key.pub" "/etc/apt/keyrings/google-linux.gpg"
   add_apt_source "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-linux.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
@@ -145,7 +157,7 @@ if ! have_cmd google-chrome; then
 fi
 
 # Signal
-if ! have_pkg signal-desktop; then
+if is_desktop && ! have_pkg signal-desktop; then
   log "Installing Signal Desktop"
   add_keyring "https://updates.signal.org/desktop/apt/keys.asc" "/usr/share/keyrings/signal-desktop-keyring.gpg"
   add_apt_source "deb [arch=amd64 signed-by=/usr/share/keyrings/signal-desktop-keyring.gpg] https://updates.signal.org/desktop/apt xenial main" \
@@ -157,7 +169,7 @@ else
 fi
 
 # VS Code
-if ! have_pkg code; then
+if is_desktop && ! have_pkg code; then
   log "Installing Visual Studio Code"
   add_keyring "https://packages.microsoft.com/keys/microsoft.asc" "/usr/share/keyrings/ms_vscode.gpg"
   add_apt_source "deb [arch=amd64 signed-by=/usr/share/keyrings/ms_vscode.gpg] https://packages.microsoft.com/repos/code stable main" \
@@ -169,7 +181,7 @@ else
 fi
 
 # 1Password
-if ! have_pkg 1password; then
+if is_desktop && ! have_pkg 1password; then
   log "Installing 1Password"
   add_keyring "https://downloads.1password.com/linux/keys/1password.asc" "/usr/share/keyrings/1password-archive-keyring.gpg"
   add_apt_source "deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main" \
@@ -181,10 +193,13 @@ else
 fi
 
 # LibreOffice
-have_pkg libreoffice || { log "Installing LibreOffice"; apt_install libreoffice; }
+if is_desktop && ! have_pkg libreoffice; then
+  log "Installing LibreOffice"
+  apt_install libreoffice
+fi
 
 # Nextcloud client
-if ! have_cmd nextcloud; then
+if is_desktop && ! have_cmd nextcloud; then
   log "Installing Nextcloud client"
   apt_install nextcloud-desktop
 else
@@ -192,7 +207,7 @@ else
 fi
 
 # Termius (.deb direct)
-if ! have_pkg termius-app; then
+if is_desktop && ! have_pkg termius-app; then
   log "Installing Termius"
   tmpdeb=$(mktemp /tmp/termius.XXXX.deb)
   wget -qO "$tmpdeb" "https://www.termius.com/download/linux/Termius.deb"
@@ -203,7 +218,7 @@ else
 fi
 
 # ProtonVPN
-if ! have_pkg proton-vpn-gtk-app; then
+if is_desktop && ! have_pkg proton-vpn-gtk-app; then
   log "Installing ProtonVPN"
   add_keyring "https://repo.protonvpn.com/debian/public_key.asc" "/usr/share/keyrings/protonvpn-archive-keyring.gpg"
   add_apt_source "deb [signed-by=/usr/share/keyrings/protonvpn-archive-keyring.gpg] https://repo.protonvpn.com/debian stable main" \
@@ -215,7 +230,7 @@ else
 fi
 
 # Discord (.deb direct)
-if ! have_pkg discord; then
+if is_desktop && ! have_pkg discord; then
   log "Installing Discord"
   tmpdeb=$(mktemp /tmp/discord.XXXX.deb)
   wget -qO "$tmpdeb" "https://discord.com/api/download?platform=linux&format=deb"
@@ -254,14 +269,14 @@ fi
 # =========================
 # Apps (Snap)  — auto-updates handled by snapd
 # =========================
-# Ensure snapd (optional; comment out if not desired)
-if ! have_cmd snap; then
+# Ensure snapd (only needed here for the desktop snaps below)
+if is_desktop && ! have_cmd snap; then
   log "Installing snapd"
   apt_install snapd
 fi
 
 # Telegram
-if ! snap list 2>/dev/null | grep -q '^telegram-desktop '; then
+if is_desktop && ! snap list 2>/dev/null | grep -q '^telegram-desktop '; then
   log "Installing Telegram (snap)"
   sudo snap install telegram-desktop
 else
@@ -269,7 +284,7 @@ else
 fi
 
 # Todoist
-if ! snap list 2>/dev/null | grep -q '^todoist '; then
+if is_desktop && ! snap list 2>/dev/null | grep -q '^todoist '; then
   log "Installing Todoist (snap)"
   sudo snap install todoist
 else
@@ -279,12 +294,12 @@ fi
 # =========================
 # Steam and NVIDIA 32-bit libs
 # =========================
-if ! have_cmd steam; then
+if is_desktop && ! have_cmd steam; then
   log "Installing Steam"
   apt_install steam-installer steam-devices
 fi
 
-if lsmod | grep -qi nvidia; then
+if is_desktop && lsmod | grep -qi nvidia; then
   have_pkg nvidia-driver-libs:i386 || { log "Installing NVIDIA 32-bit libs"; apt_install nvidia-driver-libs:i386 || true; }
 fi
 
@@ -312,6 +327,9 @@ install_nf() {
   : > "$marker"
 }
 
+# Nerd Fonts run everywhere: lsd emits Nerd Font glyphs, and while they render
+# using the *client* terminal's font over SSH, we keep them on servers too for
+# directly-attached consoles / web terminals.
 install_nf "Ubuntu"
 
 log "Bootstrap complete."
