@@ -47,7 +47,7 @@ log "Apt update"
 apt_update
 
 # Core packages
-base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla python3-venv nfs-common fzf zoxide jq ripgrep shellcheck)
+base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla python3-venv nfs-common fzf zoxide jq ripgrep shellcheck git-delta)
 need=()
 for p in "${base_pkgs[@]}"; do have_pkg "$p" || need+=("$p"); done
 if (( ${#need[@]} )); then
