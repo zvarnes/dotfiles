@@ -14,10 +14,35 @@ apt_install() { sudo apt-get "${APT_YFLAGS[@]}" install "$@"; }
 have_pkg() { dpkg -s "$1" >/dev/null 2>&1; }
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
-# Machine class: desktop (default) vs headless server.
-# Mark a box as a server BEFORE running bootstrap:  yadm config local.class server
-# Unset class is treated as desktop, so existing machines keep full behavior.
+# Machine class: desktop vs headless server.
+# Anything other than "server" counts as desktop (full install incl. GUI apps).
 is_desktop() { [ "$(yadm config local.class 2>/dev/null || true)" != "server" ]; }
+
+# If the class hasn't been set on this host yet, ask once and remember the answer
+# (so future bootstrap runs don't prompt again). Falls back to desktop when there
+# is no terminal to prompt at (e.g. CI / piped), to avoid hanging.
+if [ -z "$(yadm config local.class 2>/dev/null || true)" ]; then
+  if [ -t 0 ]; then
+    printf '\nThis host has no yadm class set. Classify it:\n'
+    printf '  [d] desktop  - full install, including GUI apps (Chrome, Discord, Steam, ...)\n'
+    printf '  [s] server   - headless: CLI/dev stack + Docker, no GUI apps\n'
+    choice=""
+    while :; do
+      printf 'Class [d/s]: '
+      if ! read -r reply; then choice="desktop"; printf '\nNo input; defaulting to desktop.\n'; break; fi
+      case "$reply" in
+        d|D|desktop) choice="desktop"; break ;;
+        s|S|server)  choice="server";  break ;;
+        *) printf 'Please enter d (desktop) or s (server).\n' ;;
+      esac
+    done
+    yadm config local.class "$choice"
+    log "Set local.class = $choice (remembered for future runs)"
+  else
+    log "WARNING: no yadm class set and no terminal to prompt; defaulting to desktop."
+    log "         Set explicitly with: yadm config local.class server"
+  fi
+fi
 log "Machine class: $(yadm config local.class 2>/dev/null || echo 'unset (desktop)')"
 
 add_keyring() { # add_keyring <url> <dest>
