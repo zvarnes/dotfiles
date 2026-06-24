@@ -47,7 +47,7 @@ log "Apt update"
 apt_update
 
 # Core packages
-base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla python3.13-venv nfs-common)
+base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla python3.13-venv nfs-common fzf zoxide jq ripgrep shellcheck)
 need=()
 for p in "${base_pkgs[@]}"; do have_pkg "$p" || need+=("$p"); done
 if (( ${#need[@]} )); then
@@ -84,6 +84,11 @@ if [ ! -d "$HOME/.oh-my-zsh" ]; then
   log "Installing oh-my-zsh"
   CHSH=no RUNZSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 fi
+
+# External oh-my-zsh plugins referenced by .zshrc
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+[ -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ] || git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+[ -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ] || git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 
 # Git identity (set only if unset)
 git config --global user.name  >/dev/null 2>&1 || git config --global user.name  "zvarnes"

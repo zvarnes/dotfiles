@@ -70,7 +70,18 @@ ZSH_THEME="robbyrussell"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git)
+# zsh-syntax-highlighting must be last. External plugins (autosuggestions,
+# syntax-highlighting) are cloned into $ZSH_CUSTOM by the bootstrap script.
+plugins=(
+	git
+	docker
+	gh
+	sudo
+	colored-man-pages
+	command-not-found
+	zsh-autosuggestions
+	zsh-syntax-highlighting
+)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -107,6 +118,10 @@ source ~/.shell_aliases
 
 export EDITOR=nvim
 export VISUAL=nvim
+
+# Modern CLI tools (no-op when not installed)
+command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
+command -v fzf >/dev/null && source <(fzf --zsh) 2>/dev/null
 
 export PYENV_ROOT="$HOME/.pyenv"
 command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
