@@ -78,7 +78,7 @@ log "Apt update"
 apt_update
 
 # Core packages
-base_pkgs=(git curl wget vim yadm bat zsh gpg apt-transport-https software-properties-common python3-venv nfs-common fzf zoxide jq ripgrep shellcheck)
+base_pkgs=(git curl wget vim yadm bat zsh gpg apt-transport-https software-properties-common python3-venv nfs-common zoxide jq ripgrep shellcheck)
 need=()
 for p in "${base_pkgs[@]}"; do have_pkg "$p" || need+=("$p"); done
 if (( ${#need[@]} )); then
@@ -113,6 +113,31 @@ install_or_update_github_deb() {
 }
 install_or_update_github_deb delta dandavison/delta git-delta   # CLI git pager
 install_or_update_github_deb lsd   lsd-rs/lsd        lsd         # icon-enabled ls
+
+# fzf — jammy's apt fzf is 0.29, which lacks the `fzf --zsh` integration that
+# .zshrc uses (Ctrl-R / Ctrl-T / completion). Install the upstream static
+# binary from GitHub to /usr/local/bin and self-update it (ships as a tarball,
+# not a .deb, so it can't use the helper above).
+install_or_update_fzf() {
+  local latest_tag latest_ver current_ver=""
+  latest_tag=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/junegunn/fzf/releases/latest" | grep -oP '[^/]+$')
+  latest_ver="${latest_tag#v}"
+  if [ -x /usr/local/bin/fzf ]; then
+    current_ver=$(/usr/local/bin/fzf --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1 || true)
+  fi
+  if [ "$current_ver" = "$latest_ver" ]; then
+    log "fzf $current_ver is already the latest"
+    return
+  fi
+  log "Installing fzf $latest_ver (current: ${current_ver:-none})"
+  local tmptgz
+  tmptgz=$(mktemp /tmp/fzf.XXXX.tar.gz)
+  curl -fsSL -o "$tmptgz" "https://github.com/junegunn/fzf/releases/download/${latest_tag}/fzf-${latest_ver}-linux_amd64.tar.gz"
+  sudo tar -C /usr/local/bin -xzf "$tmptgz" fzf
+  sudo chmod 0755 /usr/local/bin/fzf
+  rm -f "$tmptgz"
+}
+install_or_update_fzf
 
 # =========================
 # Dev tooling
@@ -168,6 +193,9 @@ fi
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 [ -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ] || git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
 [ -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ] || git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+# A umask of 002 clones these group-writable, which oh-my-zsh's compfix rejects
+# (it refuses to load completions from group/other-writable dirs). Strip it.
+chmod -R g-w,o-w "$ZSH_CUSTOM/plugins/zsh-autosuggestions" "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 
 # Git identity (set only if unset)
 git config --global user.name  >/dev/null 2>&1 || git config --global user.name  "zvarnes"
