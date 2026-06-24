@@ -78,12 +78,26 @@ log "Apt update"
 apt_update
 
 # Core packages
-base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common python3-venv nfs-common fzf zoxide jq ripgrep shellcheck git-delta)
+base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common python3-venv nfs-common fzf zoxide jq ripgrep shellcheck)
 need=()
 for p in "${base_pkgs[@]}"; do have_pkg "$p" || need+=("$p"); done
 if (( ${#need[@]} )); then
   log "Installing: ${need[*]}"
   apt_install "${need[@]}"
+fi
+
+# git-delta — not in the apt repos before Ubuntu 23.04 (jammy etc.), so install
+# the upstream .deb from GitHub releases. CLI git pager, wanted everywhere.
+if ! have_cmd delta; then
+  log "Installing git-delta"
+  delta_tag=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/dandavison/delta/releases/latest" | grep -oP '[^/]+$')
+  delta_ver="${delta_tag#v}"
+  tmpdeb=$(mktemp /tmp/git-delta.XXXX.deb)
+  curl -fsSL -o "$tmpdeb" "https://github.com/dandavison/delta/releases/download/${delta_tag}/git-delta_${delta_ver}_amd64.deb"
+  apt_install "$tmpdeb"
+  rm -f "$tmpdeb"
+else
+  log "git-delta already installed"
 fi
 
 # =========================
