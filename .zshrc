@@ -109,5 +109,6 @@ export PYENV_ROOT="$HOME/.pyenv"
 command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init -)"
 export PATH="$HOME/.local/bin:$PATH"
-source ~/.zsh_aliases
-export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
+
+# Linux Neovim release tarball location (no-op on macOS where nvim comes from brew)
+[ -d /opt/nvim-linux-x86_64/bin ] && export PATH="$PATH:/opt/nvim-linux-x86_64/bin"

@@ -67,6 +67,18 @@ else
   git -C ~/.pyenv pull --ff-only || true
 fi
 
+# neovim (release tarball -> /opt/nvim-linux-x86_64, matches PATH in .bashrc/.zshrc)
+if [ ! -x /opt/nvim-linux-x86_64/bin/nvim ]; then
+  log "Installing Neovim"
+  tmptgz=$(mktemp /tmp/nvim.XXXX.tar.gz)
+  curl -fsSL -o "$tmptgz" "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
+  sudo rm -rf /opt/nvim-linux-x86_64
+  sudo tar -C /opt -xzf "$tmptgz"
+  rm -f "$tmptgz"
+else
+  log "Neovim already installed"
+fi
+
 # oh-my-zsh (non-interactive)
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
   log "Installing oh-my-zsh"
@@ -75,7 +87,7 @@ fi
 
 # Git identity (set only if unset)
 git config --global user.name  >/dev/null 2>&1 || git config --global user.name  "zvarnes"
-git config --global user.email >/devnull 2>&1 || git config --global user.email "zach.varnes@gmail.com"
+git config --global user.email >/dev/null 2>&1 || git config --global user.email "zach.varnes@gmail.com"
 
 # =========================
 # Apps (APT repos)
