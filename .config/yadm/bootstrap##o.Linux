@@ -86,33 +86,33 @@ if (( ${#need[@]} )); then
   apt_install "${need[@]}"
 fi
 
-# git-delta — not in the apt repos before Ubuntu 23.04 (jammy etc.), so install
-# the upstream .deb from GitHub releases. CLI git pager, wanted everywhere.
-if ! have_cmd delta; then
-  log "Installing git-delta"
-  delta_tag=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/dandavison/delta/releases/latest" | grep -oP '[^/]+$')
-  delta_ver="${delta_tag#v}"
-  tmpdeb=$(mktemp /tmp/git-delta.XXXX.deb)
-  curl -fsSL -o "$tmpdeb" "https://github.com/dandavison/delta/releases/download/${delta_tag}/git-delta_${delta_ver}_amd64.deb"
+# git-delta and lsd — neither is in the apt repos before Ubuntu 23.04 (jammy
+# etc.), so install the upstream .deb from GitHub releases. Both self-update:
+# the helper compares the installed version against the latest release tag and
+# only re-downloads when they differ (same approach as neovim above).
+#   install_or_update_github_deb <cmd> <repo> <deb_prefix>
+# expects a release asset named "<deb_prefix>_<version>_amd64.deb".
+install_or_update_github_deb() {
+  local cmd="$1" repo="$2" deb_prefix="$3"
+  local latest_tag latest_ver current_ver=""
+  latest_tag=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/${repo}/releases/latest" | grep -oP '[^/]+$')
+  latest_ver="${latest_tag#v}"
+  if have_cmd "$cmd"; then
+    current_ver=$("$cmd" --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1 || true)
+  fi
+  if [ "$current_ver" = "$latest_ver" ]; then
+    log "$cmd $current_ver is already the latest"
+    return
+  fi
+  log "Installing $cmd $latest_ver (current: ${current_ver:-none})"
+  local tmpdeb
+  tmpdeb=$(mktemp "/tmp/${deb_prefix}.XXXX.deb")
+  curl -fsSL -o "$tmpdeb" "https://github.com/${repo}/releases/download/${latest_tag}/${deb_prefix}_${latest_ver}_amd64.deb"
   apt_install "$tmpdeb"
   rm -f "$tmpdeb"
-else
-  log "git-delta already installed"
-fi
-
-# lsd — also absent from the apt repos before Ubuntu 23.04, so install the
-# upstream .deb from GitHub releases. Needed for icon-enabled ls (Nerd Fonts).
-if ! have_cmd lsd; then
-  log "Installing lsd"
-  lsd_tag=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/lsd-rs/lsd/releases/latest" | grep -oP '[^/]+$')
-  lsd_ver="${lsd_tag#v}"
-  tmpdeb=$(mktemp /tmp/lsd.XXXX.deb)
-  curl -fsSL -o "$tmpdeb" "https://github.com/lsd-rs/lsd/releases/download/${lsd_tag}/lsd_${lsd_ver}_amd64.deb"
-  apt_install "$tmpdeb"
-  rm -f "$tmpdeb"
-else
-  log "lsd already installed"
-fi
+}
+install_or_update_github_deb delta dandavison/delta git-delta   # CLI git pager
+install_or_update_github_deb lsd   lsd-rs/lsd        lsd         # icon-enabled ls
 
 # =========================
 # Dev tooling
