@@ -1,12 +1,13 @@
 # Shared shell aliases — sourced by both ~/.bashrc and ~/.zshrc.
 # Keep this shell-agnostic (no zsh/bash-only syntax).
 
-# Docker Compose
-alias dcup='sudo docker-compose -f docker-compose.yml up -d'   # up all (or named) containers, detached
-alias dcdown='sudo docker-compose -f docker-compose.yml stop'  # stop all (or named) containers
-alias dcpull='sudo docker-compose -f docker-compose.yml pull'  # pull all (or named) images
-alias dclogs='sudo docker-compose -f docker-compose.yml logs -tf --tail="50" '
-alias dtail='sudo docker logs -tf --tail="50" "$@"'
+# Docker Compose (v2 plugin). On Linux, add yourself to the docker group to
+# avoid sudo:  sudo usermod -aG docker "$USER"  (then log out/in).
+alias dcup='docker compose -f docker-compose.yml up -d'   # up all (or named) containers, detached
+alias dcdown='docker compose -f docker-compose.yml stop'  # stop all (or named) containers
+alias dcpull='docker compose -f docker-compose.yml pull'  # pull all (or named) images
+alias dclogs='docker compose -f docker-compose.yml logs -tf --tail="50" '
+alias dtail='docker logs -tf --tail="50" "$@"'
 
 # Editors
 alias vim='nvim'

@@ -9,3 +9,15 @@
 	email = zach.varnes@gmail.com
 [safe]
 	directory = /home/zvarnes/homeassistant
+[init]
+	defaultBranch = main
+[core]
+	editor = nvim
+[push]
+	autoSetupRemote = true
+[pull]
+	rebase = true
+[fetch]
+	prune = true
+[rerere]
+	enabled = true

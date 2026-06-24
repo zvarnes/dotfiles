@@ -20,4 +20,10 @@ cd "$HOME"
 # Install the packages specified in the Brewfile
 brew bundle --file Brewfile
 
+# oh-my-zsh (non-interactive) — required by .zshrc
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+	echo "Installing oh-my-zsh..."
+	CHSH=no RUNZSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+fi
+
 echo "Bootstrap process complete."
