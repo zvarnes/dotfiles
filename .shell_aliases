@@ -1,0 +1,26 @@
+# Shared shell aliases — sourced by both ~/.bashrc and ~/.zshrc.
+# Keep this shell-agnostic (no zsh/bash-only syntax).
+
+# Docker Compose
+alias dcup='sudo docker-compose -f docker-compose.yml up -d'   # up all (or named) containers, detached
+alias dcdown='sudo docker-compose -f docker-compose.yml stop'  # stop all (or named) containers
+alias dcpull='sudo docker-compose -f docker-compose.yml pull'  # pull all (or named) images
+alias dclogs='sudo docker-compose -f docker-compose.yml logs -tf --tail="50" '
+alias dtail='sudo docker logs -tf --tail="50" "$@"'
+
+# Editors
+alias vim='nvim'
+alias n='vim'
+
+# Listing (lsd)
+alias ls='lsd'
+alias l='ls'
+alias ll='ls -la'
+alias la='ls -A'
+
+# cat -> bat (packaged as "batcat" on Debian/Ubuntu)
+if command -v bat >/dev/null 2>&1; then
+	alias cat='bat -pP'
+elif command -v batcat >/dev/null 2>&1; then
+	alias cat='batcat -pP'
+fi
