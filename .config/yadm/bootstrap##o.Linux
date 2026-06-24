@@ -47,7 +47,7 @@ log "Apt update"
 apt_update
 
 # Core packages
-base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla python3.13-venv nfs-common fzf zoxide jq ripgrep shellcheck)
+base_pkgs=(git curl wget vim yadm bat zsh lsd gpg apt-transport-https software-properties-common filezilla python3-venv nfs-common fzf zoxide jq ripgrep shellcheck)
 need=()
 for p in "${base_pkgs[@]}"; do have_pkg "$p" || need+=("$p"); done
 if (( ${#need[@]} )); then
@@ -68,16 +68,27 @@ else
 fi
 
 # neovim (release tarball -> /opt/nvim-linux-x86_64, matches PATH in .bashrc/.zshrc)
-if [ ! -x /opt/nvim-linux-x86_64/bin/nvim ]; then
-  log "Installing Neovim"
+install_or_update_nvim() {
+  local latest_tag
+  latest_tag=$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/neovim/neovim/releases/latest" | grep -oP '[^/]+$')
+  local latest_ver="${latest_tag#v}"
+  local current_ver=""
+  if [ -x /opt/nvim-linux-x86_64/bin/nvim ]; then
+    current_ver=$(/opt/nvim-linux-x86_64/bin/nvim --version | head -1 | grep -oP '[\d.]+')
+  fi
+  if [ "$current_ver" = "$latest_ver" ]; then
+    log "Neovim $current_ver is already the latest"
+    return
+  fi
+  log "Installing Neovim $latest_ver (current: ${current_ver:-none})"
+  local tmptgz
   tmptgz=$(mktemp /tmp/nvim.XXXX.tar.gz)
   curl -fsSL -o "$tmptgz" "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
   sudo rm -rf /opt/nvim-linux-x86_64
   sudo tar -C /opt -xzf "$tmptgz"
   rm -f "$tmptgz"
-else
-  log "Neovim already installed"
-fi
+}
+install_or_update_nvim
 
 # oh-my-zsh (non-interactive)
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
