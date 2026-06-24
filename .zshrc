@@ -112,3 +112,4 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Linux Neovim release tarball location (no-op on macOS where nvim comes from brew)
 [ -d /opt/nvim-linux-x86_64/bin ] && export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
+export PATH=~/.npm-global/bin:$PATH

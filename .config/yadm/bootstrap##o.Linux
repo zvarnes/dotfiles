@@ -172,6 +172,20 @@ else
   log "ProtonVPN already installed"
 fi
 
+# Discord (.deb direct)
+if ! have_pkg discord; then
+  log "Installing Discord"
+  tmpdeb=$(mktemp /tmp/discord.XXXX.deb)
+  wget -qO "$tmpdeb" "https://discord.com/api/download?platform=linux&format=deb"
+  apt_install "$tmpdeb"
+  rm -f "$tmpdeb"
+  # Fix idle/away status detection on Wayland
+  sudo sed -i 's|^Exec=/usr/share/discord/Discord|Exec=/usr/share/discord/Discord --enable-features=UseOzonePlatform --ozone-platform=wayland|' \
+    /usr/share/applications/discord.desktop
+else
+  log "Discord already installed"
+fi
+
 # =========================
 # Apps (Snap)  — auto-updates handled by snapd
 # =========================
@@ -179,14 +193,6 @@ fi
 if ! have_cmd snap; then
   log "Installing snapd"
   apt_install snapd
-fi
-
-# Discord
-if ! snap list 2>/dev/null | grep -q '^discord '; then
-  log "Installing Discord (snap)"
-  sudo snap install discord
-else
-  log "Discord already installed (snap)"
 fi
 
 # Telegram
