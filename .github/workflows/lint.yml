@@ -1,0 +1,22 @@
+name: lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  shellcheck:
+    name: shellcheck bootstrap scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run shellcheck
+        run: |
+          files=$(find .config/yadm -name 'bootstrap*' -type f)
+          if [ -z "$files" ]; then
+            echo "No bootstrap scripts found" >&2
+            exit 1
+          fi
+          echo "Linting:"; echo "$files"
+          # shellcheck reads the shebang to detect the shell dialect
+          echo "$files" | xargs shellcheck -S warning
