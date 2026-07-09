@@ -1,0 +1,10 @@
+# Ghostty configuration
+
+# Shell integration.
+# ssh-terminfo: auto-installs Ghostty's terminfo on remote hosts over SSH,
+#   so the remote shell renders correctly instead of "bugging out".
+# ssh-env: exports a safe TERM/COLORTERM fallback when terminfo can't be
+#   installed (e.g. read-only host), avoiding a broken xterm-ghostty session.
+# cursor,title are Ghostty's defaults, kept here because setting this key
+#   replaces the default feature set rather than adding to it.
+shell-integration-features = cursor,title,ssh-env,ssh-terminfo
