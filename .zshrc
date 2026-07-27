@@ -60,7 +60,7 @@ ZSH_THEME="af-magic" # set by `omz`
 # "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
 # or set a custom format using the strftime function format specifications,
 # see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
+HIST_STAMPS="yyyy-mm-dd"
 
 # Would you like to use another custom folder than $ZSH/custom?
 # ZSH_CUSTOM=/path/to/new-custom-folder
@@ -118,6 +118,16 @@ source ~/.shell_aliases
 
 export EDITOR=nvim
 export VISUAL=nvim
+
+# History retention. Set after oh-my-zsh is sourced so these win over the
+# floors in lib/history.zsh (HISTSIZE 50000 / SAVEHIST 10000).
+# HISTSIZE is the in-memory list and must stay >= SAVEHIST, or zsh drops
+# entries when writing the file.
+HISTSIZE=100000
+SAVEHIST=50000
+
+setopt hist_find_no_dups   # collapse repeats in search results only, not in the file
+setopt hist_reduce_blanks  # normalize redundant whitespace before saving
 
 # Modern CLI tools (no-op when not installed)
 command -v zoxide >/dev/null && eval "$(zoxide init zsh)"

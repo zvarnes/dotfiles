@@ -19,6 +19,10 @@ shopt -s histappend
 HISTSIZE=1000
 HISTFILESIZE=2000
 
+# record a timestamp per command; bash writes these as "#<epoch>" lines in
+# .bash_history. Only applies to commands run from here on.
+HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S  "
+
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
