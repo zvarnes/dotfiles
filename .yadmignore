@@ -5,3 +5,8 @@
 *.pem
 *.p12
 
+# Shell history: plaintext, and routinely contains credentials typed inline.
+# Never belongs in the dotfiles repo.
+.zsh_history
+.bash_history
+
