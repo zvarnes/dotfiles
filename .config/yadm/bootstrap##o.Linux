@@ -201,6 +201,14 @@ chmod -R g-w,o-w "$ZSH_CUSTOM/plugins/zsh-autosuggestions" "$ZSH_CUSTOM/plugins/
 git config --global user.name  >/dev/null 2>&1 || git config --global user.name  "zvarnes"
 git config --global user.email >/dev/null 2>&1 || git config --global user.email "zach.varnes@gmail.com"
 
+# Activate .yadmignore. yadm does not wire this file up as a git exclude on its
+# own, so without this it is inert and `yadm add -A` will happily stage .ssh/,
+# .env, *.key and shell history. The setting lives in the yadm repo's config,
+# which is not tracked and does not push, so it must be set on every machine.
+# Set unconditionally: this is a guardrail, not a preference.
+log "Activating .yadmignore"
+yadm gitconfig core.excludesFile "$HOME/.yadmignore"
+
 # =========================
 # Apps (APT repos)
 # =========================

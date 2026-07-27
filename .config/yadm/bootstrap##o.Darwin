@@ -31,4 +31,12 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 [ -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ] || git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
 [ -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ] || git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 
+# Activate .yadmignore. yadm does not wire this file up as a git exclude on its
+# own, so without this it is inert and `yadm add -A` will happily stage .ssh/,
+# .env, *.key and shell history. The setting lives in the yadm repo's config,
+# which is not tracked and does not push, so it must be set on every machine.
+# Set unconditionally: this is a guardrail, not a preference.
+echo "Activating .yadmignore..."
+yadm gitconfig core.excludesFile "$HOME/.yadmignore"
+
 echo "Bootstrap process complete."
